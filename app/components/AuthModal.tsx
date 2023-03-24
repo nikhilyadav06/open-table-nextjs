@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
 import Modal from '@mui/material/Modal'
 import AuthModalInputs from './AuthModalInputs'
+import useAuth from '../../hooks/useAuth'
+import { AuthenticationContext } from '../context/AuthContext'
+import { Alert, CircularProgress } from '@mui/material'
 
 const style = {
   position: 'absolute' as 'absolute',
@@ -33,6 +34,11 @@ export default function AuthModal({ isSignIn }: { isSignIn: boolean }) {
     password: ''
   })
 
+  const [disabled, setDisabled] = useState(true)
+
+  const { signIn, signUp } = useAuth()
+  const { loading, error, data } = useContext(AuthenticationContext)
+
   const handleChangeInputs = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputs({
       ...inputs,
@@ -42,6 +48,28 @@ export default function AuthModal({ isSignIn }: { isSignIn: boolean }) {
 
   const renderContent = (signInContent: string, signUpContent: string) => {
     return isSignIn ? signInContent : signUpContent
+  }
+
+  useEffect(() => {
+    if (isSignIn) {
+      if (inputs.password && inputs.email) {
+        return setDisabled(false)
+      }
+    } else {
+      if (inputs.password && inputs.email && inputs.firstName && inputs.lastName && inputs.phone && inputs.city) {
+        return setDisabled(false)
+      }
+    }
+
+    setDisabled(true)
+  }, [inputs])
+
+  const handleClick = () => {
+    if (isSignIn) {
+      signIn({ email: inputs.email, password: inputs.password }, handleClose)
+    } else {
+      signUp( inputs, handleClose)
+    }
   }
 
   return (
@@ -59,23 +87,31 @@ export default function AuthModal({ isSignIn }: { isSignIn: boolean }) {
         aria-describedby="modal-modal-description"
       >
         <Box sx={style}>
-          <div className='p-2'>
-            <div className='uppercase font-bold text-center pb-2 border-b mb-2'>
-              <p className='text-sm'>
-                {renderContent('Sign In', 'Create Account')}
-              </p>
-            </div>
+          {loading ? (
+              <div className='h-[250px] flex justify-center items-center'><CircularProgress /></div>
+            ) : (
+            <div className='p-2'>
+              {error ? <Alert severity='error'>{error}</Alert> : null}
+              <div className='uppercase font-bold text-center pt-2 pb-2 border-b mb-2'>
+                <p className='text-sm'>
+                  {renderContent('Sign In', 'Create Account')}
+                </p>
+              </div>
 
-            <div className='m-auto'>
-              <h2 className='text-2xl font-light text-center'>
-                {renderContent('Log Into Your Account', 'Create Your OpenTable Account')}
-              </h2>
-              <AuthModalInputs inputs={inputs} handleChangeInputs={handleChangeInputs} isSignIn={isSignIn} />
-              <button className=' uppercase bg-red-600 w-full text-white p-3 rounded text-sm mb-5 disabled:bg-gray-400'>
-                {renderContent('Sign In', 'Create Account')}
-              </button>
-            </div>
-          </div>
+              <div className='m-auto'>
+                <h2 className='text-2xl font-light text-center'>
+                  {renderContent('Log Into Your Account', 'Create Your OpenTable Account')}
+                </h2>
+                <AuthModalInputs inputs={inputs} handleChangeInputs={handleChangeInputs} isSignIn={isSignIn} />
+                <button className=' uppercase bg-red-600 w-full text-white p-3 rounded text-sm mb-5 disabled:bg-gray-400'
+                  disabled={disabled}
+                  onClick={handleClick}
+                >
+                  {renderContent('Sign In', 'Create Account')}
+                </button>
+              </div>
+            </div>)
+          }
         </Box>
       </Modal>
     </div>
